@@ -77,8 +77,8 @@
 
 <input
   bind:this={fileInput}
+  class="native-file-input"
   type="file"
   accept="video/mp4,video/*"
-  style="display:none"
   onchange={onInputChange}
 />

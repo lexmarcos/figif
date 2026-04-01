@@ -148,20 +148,18 @@
 {/if}
 
 <div class="container">
-  <header class="header" style="position: relative; padding: 1rem 0;">
-    <div
-      style="position: absolute; top: -1.5rem; right: -1rem; color: var(--color-primary); transform: rotate(15deg); filter: drop-shadow(0 0 15px rgba(204, 255, 0, 0.4));"
-    >
+  <header class="header home-hero">
+    <div class="home-hero__spark">
       <Sparkles size={48} strokeWidth={1.5} />
     </div>
-    <div class="brand-logo">
+    <div class="brand-logo home-hero__brand">
       <svg
         width="100"
         height="100"
         viewBox="0 0 100 100"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        class="logo-svg"
+        class="logo-svg home-hero__logo"
       >
         <circle cx="40" cy="45" r="22" fill="var(--color-secondary)" />
         <rect
@@ -179,7 +177,7 @@
           width="45"
           height="45"
           fill="var(--color-primary)"
-          style="filter: drop-shadow(0 0 15px rgba(204, 255, 0, 0.4));"
+          class="home-hero__accent-shape"
           transform="rotate(-10 62.5 57.5)"
         />
         <polygon
@@ -189,7 +187,10 @@
       </svg>
       <h1>FIGIF</h1>
     </div>
-    <h2>Crie figurinhas GIF<br />para WhatsApp</h2>
+    <h2 class="home-hero__subtitle">
+      <span>Crie figurinhas GIF</span>
+      <span>para WhatsApp</span>
+    </h2>
   </header>
 
   {#if !showTrimmer || !file}
@@ -213,12 +214,11 @@
             type="url"
             bind:value={twitterUrl}
             placeholder="https://x.com/..."
-            class="brutalist-input"
-            style="flex: 1;"
+            class="brutalist-input landing-zone__input"
             onkeydown={(e) => e.key === "Enter" && fetchTwitterVideo()}
           />
           <button
-            class="btn btn-primary btn--compact"
+            class="btn btn-primary btn--compact landing-zone__submit"
             onclick={fetchTwitterVideo}
             disabled={processing || !twitterUrl}
           >
@@ -235,7 +235,7 @@
           <ArrowLeft size={18} strokeWidth={2.5} />
           Voltar
         </button>
-        <span class="section__label" style="margin: 0;">Recortar trecho</span>
+        <span class="section__label trim-header__label">Recortar trecho</span>
       </div>
       <VideoTrimmer
         {file}
@@ -261,9 +261,9 @@
 
   <input
     bind:this={swapInput}
+    class="native-file-input"
     type="file"
     accept="video/mp4,video/*"
-    style="display:none"
     onchange={(e: Event) => {
       const input = e.target as HTMLInputElement;
       const f = input.files?.[0];
