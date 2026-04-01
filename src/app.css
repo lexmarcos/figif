@@ -1374,6 +1374,9 @@ h2 {
   bottom: 2rem;
   left: 50%;
   transform: translateX(-50%) translateY(20px);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
   background: var(--color-primary);
   color: #000;
   border: 2px solid var(--color-primary);
@@ -1386,6 +1389,19 @@ h2 {
   box-shadow: var(--shadow-bloom-primary);
   z-index: 200;
   animation: toastIn 300ms var(--ease) forwards;
+}
+
+.toast--error {
+  background: var(--color-secondary);
+  color: #000;
+  border-color: var(--color-secondary);
+  box-shadow: var(--shadow-bloom-secondary);
+}
+
+.toast__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @keyframes toastIn {

@@ -27,7 +27,7 @@
   let aspectRatio = $state<AspectRatio>("free");
   let processing = $state(false);
   let progressMsg = $state("");
-  let toast = $state("");
+  let toast = $state<{ message: string; tone: "success" | "error" | "download" } | null>(null);
   let toastTimeout: ReturnType<typeof setTimeout>;
 
   // Quality control
@@ -54,11 +54,14 @@
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   }
 
-  function showToast(msg: string) {
-    toast = msg;
+  function showToast(
+    message: string,
+    tone: "success" | "error" | "download" = "success",
+  ) {
+    toast = { message, tone };
     if (toastTimeout) clearTimeout(toastTimeout);
     toastTimeout = setTimeout(() => {
-      toast = "";
+      toast = null;
     }, 3000);
   }
 
@@ -82,13 +85,13 @@
         await navigator.clipboard.write([
           new ClipboardItem({ "image/png": pngBlob }),
         ]);
-        showToast("✅ Imagem copiada!");
+        showToast("Imagem copiada!", "success");
       } else {
         throw new Error("Clipboard API not available");
       }
     } catch (err) {
       downloadGif();
-      showToast("📥 GIF baixado (copiar não suportado neste navegador)");
+      showToast("GIF baixado. Cole no WhatsApp.", "download");
     }
   }
 
@@ -133,10 +136,10 @@
       quality = 100;
       cropping = false;
       cropConfirmFn = null;
-      showToast("✅ GIF recortado!");
+      showToast("GIF recortado!", "success");
     } catch (e) {
       console.error(e);
-      showToast("❌ Erro ao recortar");
+      showToast("Erro ao recortar", "error");
     } finally {
       processing = false;
     }
@@ -158,10 +161,10 @@
         progressMsg = msg;
       });
       gifBlob = newBlob;
-      showToast(`✅ Qualidade ajustada para ${quality}%`);
+      showToast(`Qualidade ajustada para ${quality}%`, "success");
     } catch (e) {
       console.error(e);
-      showToast("❌ Erro ao ajustar qualidade");
+      showToast("Erro ao ajustar qualidade", "error");
     } finally {
       processing = false;
     }
@@ -198,7 +201,17 @@
           onConfirmReady={registerCropConfirm}
         />
       {:else}
-        <img src={gifUrl} alt="GIF gerado" />
+        <div class="result-image-container">
+          <img src={gifUrl} alt="GIF gerado" />
+          <div class="copy-hint" aria-hidden="true">
+            <span class="copy-hint-icon">
+              <Copy size={40} strokeWidth={2.6} />
+            </span>
+            <span class="copy-hint-text"
+              >Pressione e segure para copiar<br />e cole no WhatsApp</span
+            >
+          </div>
+        </div>
       {/if}
     </div>
 
@@ -299,5 +312,93 @@
 </div>
 
 {#if toast}
-  <div class="toast">{toast}</div>
+  <div class="toast" class:toast--error={toast.tone === "error"}>
+    <span class="toast__icon" aria-hidden="true">
+      {#if toast.tone === "success"}
+        <Check size={18} strokeWidth={2.8} />
+      {:else if toast.tone === "download"}
+        <Download size={18} strokeWidth={2.8} />
+      {:else}
+        <X size={18} strokeWidth={2.8} />
+      {/if}
+    </span>
+    <span>{toast.message}</span>
+  </div>
 {/if}
+
+<style>
+  .result-image-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  .copy-hint {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.85);
+    border: 3px solid var(--color-primary);
+    box-shadow: 4px 4px 0px rgba(204, 255, 0, 0.4);
+    color: #fff;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    pointer-events: none;
+    z-index: 10;
+    animation: hintFadeInOut 5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .copy-hint-icon {
+    color: var(--color-primary);
+    filter: drop-shadow(0 0 18px rgba(204, 255, 0, 0.5));
+    animation: pressPulse 1.5s ease-in-out infinite;
+  }
+
+  .copy-hint-text {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: 0.9rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    text-align: center;
+    letter-spacing: 0.05em;
+    line-height: 1.3;
+  }
+
+  @keyframes pressPulse {
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      transform: translateY(4px) scale(0.9);
+    }
+  }
+
+  @keyframes hintFadeInOut {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -45%);
+    }
+    10% {
+      opacity: 1;
+      transform: translate(-50%, -50%);
+    }
+    85% {
+      opacity: 1;
+      transform: translate(-50%, -50%);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -50%);
+      visibility: hidden;
+    }
+  }
+</style>
