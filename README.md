@@ -1,47 +1,122 @@
-# Svelte + TS + Vite
+<p align="center">
+  <img src="./src/assets/hero.png" alt="FiGif" width="180" />
+</p>
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+<h1 align="center">FiGif</h1>
 
-## Recommended IDE Setup
+<p align="center">
+  GIF maker focado em navegador para criar figurinhas animadas com trim, crop e renderização local.
+</p>
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+## Sobre o projeto
 
-## Need an official Svelte framework?
+O **FiGif** é uma aplicação web para transformar vídeos em GIFs prontos para uso no WhatsApp e em outras redes. A proposta é manter o processamento principal no cliente com **FFmpeg WebAssembly**, reduzindo dependência de infraestrutura externa e preservando a privacidade do usuário.
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+Além do upload local, o app também consegue buscar vídeos do **X/Twitter** por meio de um proxy em **Node.js + Express**, contornando limitações de CORS no navegador.
 
-## Technical considerations
+## O que o sistema faz
 
-**Why use this over SvelteKit?**
+- Upload de vídeo local no navegador
+- Importação de vídeo do X/Twitter
+- Recorte de trecho do vídeo antes da geração do GIF
+- Recorte visual inline do GIF já gerado
+- Ajuste de qualidade do GIF final
+- Processamento local com feedback de progresso
+- Interface brutalista escura com foco em rapidez e legibilidade
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+## Stack
 
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+- **Frontend:** Svelte 5 + Vite + TypeScript
+- **Estilo:** CSS puro
+- **Ícones:** lucide-svelte
+- **Processamento de mídia:** `@ffmpeg/ffmpeg` + `@ffmpeg/util`
+- **Backend auxiliar:** Node.js + Express + CORS
+- **Containerização:** Docker + Docker Compose + Nginx
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
+## Como rodar localmente
 
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
+### Pré-requisitos
 
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
+- Node.js 22+ recomendado
+- npm
 
-**Why include `.vscode/extensions.json`?**
+### 1. Instale as dependências
 
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+```bash
+npm install
 ```
+
+### 2. Suba o backend
+
+Em um terminal:
+
+```bash
+npm run server
+```
+
+O proxy ficará disponível em `http://localhost:3001`.
+
+### 3. Suba o frontend
+
+Em outro terminal:
+
+```bash
+npm run dev
+```
+
+O frontend ficará disponível normalmente em `http://localhost:5173`.
+
+## Como rodar com Docker Compose
+
+### 1. Configure o ambiente
+
+O projeto já inclui um arquivo `.env` com a porta pública do frontend:
+
+```env
+FIGIF_PORT=8080
+```
+
+Se quiser, ajuste esse valor antes de subir os containers.
+
+### 2. Suba os serviços
+
+```bash
+docker compose up --build
+```
+
+Depois disso, a aplicação ficará disponível em:
+
+```bash
+http://localhost:8080
+```
+
+## Estrutura dos serviços no Compose
+
+- `frontend`: build de produção do app Svelte servido por Nginx
+- `backend`: proxy Express para integração com vídeo do X/Twitter
+
+O Nginx encaminha as rotas `/api/*` para o backend automaticamente.
+
+## Scripts úteis
+
+```bash
+npm run dev
+npm run server
+npm run build
+npm run preview
+npm run check
+```
+
+## Fluxo de uso
+
+1. Envie um vídeo local ou cole um link do X/Twitter
+2. Escolha o trecho que será transformado em GIF
+3. Gere o GIF no navegador
+4. Recorte a área desejada diretamente na tela do resultado
+5. Ajuste a qualidade, copie ou baixe o arquivo final
+
+## Observações
+
+- O processamento de GIF pode levar alguns segundos dependendo do vídeo e do dispositivo.
+- Para a importação de vídeos do X/Twitter funcionar, o backend precisa estar ativo.
+- O app usa headers específicos no frontend para compatibilidade com o FFmpeg em WebAssembly.

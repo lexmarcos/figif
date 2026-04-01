@@ -1,18 +1,22 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { Check, X } from "lucide-svelte";
+
+  type AspectRatio = "free" | "1:1" | "4:3" | "3:4" | "16:9" | "9:16";
+
+  interface Props {
+    imageUrl: string;
+    aspectRatio?: AspectRatio;
+    onCropComplete: (x: number, y: number, w: number, h: number) => void;
+    onConfirmReady?: (confirm: (() => void) | null) => void;
+  }
 
   let {
     imageUrl,
+    aspectRatio = "free",
     onCropComplete,
-    onCancel,
-  }: {
-    imageUrl: string;
-    onCropComplete: (x: number, y: number, w: number, h: number) => void;
-    onCancel: () => void;
-  } = $props();
+    onConfirmReady = () => {},
+  }: Props = $props();
 
-  let container: HTMLDivElement;
   let imgEl: HTMLImageElement;
   let imgW = $state(0);
   let imgH = $state(0);
@@ -29,8 +33,6 @@
   let startCy = 0;
   let startCw = 0;
   let startCh = 0;
-
-  let aspectRatio = $state("free");
 
   const MIN_SIZE = 40;
 
@@ -74,7 +76,6 @@
   function onImgLoad() {
     imgW = imgEl.naturalWidth;
     imgH = imgEl.naturalHeight;
-    applyAspectRatio();
   }
 
   function clamp(val: number, min: number, max: number) {
@@ -137,7 +138,6 @@
         if (asp) tempCw = tempCh * asp;
       }
 
-      // Recheck X bounds just in case aspect locked Y forced X to break
       if (tempCw > boundX) {
         tempCw = boundX;
         if (asp) tempCh = tempCw / asp;
@@ -158,11 +158,36 @@
   }
 
   function handleComplete() {
+    if (!imgW || !imgH) return;
+
     const { dw, dh } = getDisplayedDimensions();
+    if (!dw || !dh) return;
+
     const scaleX = imgW / dw;
     const scaleY = imgH / dh;
     onCropComplete(cx * scaleX, cy * scaleY, cw * scaleX, ch * scaleY);
   }
+
+  $effect(() => {
+    aspectRatio;
+    imgW;
+
+    if (!imgW) return;
+
+    const frame = requestAnimationFrame(() => {
+      applyAspectRatio();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  });
+
+  $effect(() => {
+    onConfirmReady(handleComplete);
+
+    return () => {
+      onConfirmReady(null);
+    };
+  });
 
   onDestroy(() => {
     window.removeEventListener("pointermove", onPointerMove);
@@ -170,23 +195,8 @@
   });
 </script>
 
-<div class="crop-wrapper">
-  <div class="crop-header">
-    <select
-      class="brutalist-select"
-      bind:value={aspectRatio}
-      onchange={applyAspectRatio}
-    >
-      <option value="free">Livre</option>
-      <option value="1:1">1:1 (Quadrado)</option>
-      <option value="4:3">4:3 (Horizontal)</option>
-      <option value="3:4">3:4 (Retrato)</option>
-      <option value="16:9">16:9 (Wide)</option>
-      <option value="9:16">9:16 (Vertical)</option>
-    </select>
-  </div>
-
-  <div class="crop-container" bind:this={container}>
+<div class="crop-tool">
+  <div class="crop-container">
     <img
       bind:this={imgEl}
       src={imageUrl}
@@ -229,38 +239,12 @@
       </div>
     {/if}
   </div>
-
-  <div class="crop-actions">
-    <button class="btn btn-danger" onclick={onCancel}>
-      <X size={24} strokeWidth={2.5} />
-      Cancelar
-    </button>
-    <button class="btn btn-primary" onclick={handleComplete}>
-      <Check size={24} strokeWidth={2.5} />
-      Recortar
-    </button>
-  </div>
 </div>
 
 <style>
-  .crop-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.5rem;
-    width: 100%;
-  }
-
-  .crop-header {
-    width: 100%;
+  .crop-tool {
     display: flex;
     justify-content: center;
-  }
-
-  .crop-actions {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    justify-content: center;
+    width: 100%;
   }
 </style>

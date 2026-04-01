@@ -10,6 +10,21 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',
     },
+    proxy: {
+      '/api/twitter': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/api/proxy-video': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/api/cobalt': {
+        target: 'https://api.cobalt.tools',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/cobalt/, '')
+      }
+    }
   },
   optimizeDeps: {
     exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],

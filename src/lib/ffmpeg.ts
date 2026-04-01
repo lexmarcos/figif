@@ -4,6 +4,17 @@ import { fetchFile, toBlobURL } from '@ffmpeg/util';
 let ffmpeg: FFmpeg | null = null;
 let loaded = false;
 
+function fileDataToBlob(data: string | Uint8Array, type: string): Blob {
+  if (typeof data === 'string') {
+    return new Blob([data], { type });
+  }
+
+  // Copy into a plain ArrayBuffer-backed view to satisfy BlobPart typing.
+  const bytes = new Uint8Array(data.byteLength);
+  bytes.set(data);
+  return new Blob([bytes], { type });
+}
+
 export async function loadFfmpeg(onProgress?: (msg: string) => void): Promise<FFmpeg> {
   if (ffmpeg && loaded) return ffmpeg;
 
@@ -52,7 +63,7 @@ export async function videoToGif(
   ]);
 
   const data = await ff.readFile('output.gif');
-  const blob = new Blob([data], { type: 'image/gif' });
+  const blob = fileDataToBlob(data, 'image/gif');
 
   // Cleanup
   await ff.deleteFile('input.mp4');
@@ -103,7 +114,7 @@ export async function trimAndConvertToGif(
   ]);
 
   const data = await ff.readFile('output.gif');
-  const blob = new Blob([data], { type: 'image/gif' });
+  const blob = fileDataToBlob(data, 'image/gif');
 
   await ff.deleteFile('input.mp4');
   await ff.deleteFile('trimmed.mp4');
@@ -134,7 +145,7 @@ export async function cropGif(
   ]);
 
   const data = await ff.readFile('crop_output.gif');
-  const blob = new Blob([data], { type: 'image/gif' });
+  const blob = fileDataToBlob(data, 'image/gif');
 
   await ff.deleteFile('crop_input.gif');
   await ff.deleteFile('crop_output.gif');
@@ -176,7 +187,7 @@ export async function reencodeGif(
   ]);
 
   const data = await ff.readFile('q_output.gif');
-  const blob = new Blob([data], { type: 'image/gif' });
+  const blob = fileDataToBlob(data, 'image/gif');
 
   await ff.deleteFile('q_input.gif');
   await ff.deleteFile('q_palette.png');

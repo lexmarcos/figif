@@ -2,8 +2,17 @@
   import Dropzone from "./Dropzone.svelte";
   import ProgressOverlay from "./ProgressOverlay.svelte";
   import VideoTrimmer from "./VideoTrimmer.svelte";
-  import { videoToGif, trimAndConvertToGif } from "./ffmpeg";
-  import { Zap, Scissors, Wand2, Clock, Sparkles } from "lucide-svelte";
+  import { trimAndConvertToGif } from "./ffmpeg";
+  import { Wand2, Sparkles, Link, ArrowLeft } from "lucide-svelte";
+
+  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(
+    /\/$/,
+    "",
+  );
+
+  function apiUrl(path: string): string {
+    return `${API_BASE_URL}${path}`;
+  }
 
   let {
     onGifGenerated,
@@ -11,10 +20,8 @@
     onGifGenerated: (blob: Blob) => void;
   } = $props();
 
-  type Mode = "direct" | "trim";
-
-  let mode: Mode = $state("direct");
   let file: File | null = $state(null);
+  let twitterUrl = $state("");
   let processing = $state(false);
   let progressMsg = $state("");
   let error = $state("");
@@ -40,20 +47,57 @@
       // Auto-set trim range
       trimStart = 0;
       trimEnd = Math.min(videoDuration, 15);
-
-      // In trim mode, show trimmer automatically when video is loaded
-      if (mode === "trim") {
-        showTrimmer = true;
-      }
+      showTrimmer = true;
     };
     video.src = url;
   }
 
   function canGenerate(): boolean {
-    if (!file) return false;
-    if (mode === "direct" && videoDuration > 15) return false;
-    if (mode === "trim" && !showTrimmer) return false;
-    return true;
+    return !!file && showTrimmer;
+  }
+
+  async function fetchTwitterVideo() {
+    if (!twitterUrl) return;
+    processing = true;
+    error = "";
+    progressMsg = "Buscando vídeo no Twitter...";
+
+    try {
+      const resp = await fetch(apiUrl("/api/twitter"), {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: twitterUrl,
+          vCodec: "h264",
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        throw new Error(data.error || "A API local rejeitou o pedido.");
+      }
+      if (!data.url) throw new Error("URL do vídeo não encontrada");
+
+      progressMsg = "Baixando mídia...";
+      const proxyUrl =
+        apiUrl("/api/proxy-video") + "?url=" + encodeURIComponent(data.url);
+      const mediaResp = await fetch(proxyUrl);
+      if (!mediaResp.ok) throw new Error("Erro de conexão ao rotear mídia");
+      const blob = await mediaResp.blob();
+      const filename = "twitter_video.mp4";
+      const f = new File([blob], filename, { type: blob.type });
+
+      onFileSelected(f);
+      twitterUrl = "";
+    } catch (err: any) {
+      console.error(err);
+      error =
+        "Não foi possível baixar o vídeo. Verifique se o link possui um vídeo válido.";
+    } finally {
+      processing = false;
+    }
   }
 
   function onTrimConfirmed(start: number, end: number) {
@@ -61,40 +105,31 @@
     trimEnd = end;
   }
 
-  function selectMode(newMode: Mode) {
-    mode = newMode;
+  function goBackToLanding() {
+    file = null;
+    showTrimmer = false;
+    videoDuration = 0;
+    trimStart = 0;
+    trimEnd = 15;
     error = "";
-    if (newMode === "trim" && file && videoDuration > 0) {
-      showTrimmer = true;
-    } else {
-      showTrimmer = false;
-    }
   }
 
   async function generate() {
     if (!file || processing) return;
-
-    if (mode === "direct" && videoDuration > 15) {
-      error =
-        "No modo Direto, o vídeo precisa ter até 15 segundos. Use o modo Recorte para vídeos maiores.";
-      return;
-    }
 
     processing = true;
     error = "";
     progressMsg = "Iniciando...";
 
     try {
-      let blob: Blob;
-      if (mode === "trim") {
-        blob = await trimAndConvertToGif(file, trimStart, trimEnd, (msg) => {
+      const blob = await trimAndConvertToGif(
+        file,
+        trimStart,
+        trimEnd,
+        (msg) => {
           progressMsg = msg;
-        });
-      } else {
-        blob = await videoToGif(file, (msg) => {
-          progressMsg = msg;
-        });
-      }
+        },
+      );
       onGifGenerated(blob);
     } catch (e: any) {
       console.error(e);
@@ -157,66 +192,51 @@
     <h2>Crie figurinhas GIF<br />para WhatsApp</h2>
   </header>
 
-  <div class="section">
-    <span class="section__label">Modo</span>
-    <div class="mode-cards">
-      <div
-        class="mode-card"
-        class:active={mode === "direct"}
-        role="radio"
-        aria-checked={mode === "direct"}
-        tabindex="0"
-        onclick={() => selectMode("direct")}
-        onkeydown={(e: KeyboardEvent) =>
-          e.key === "Enter" && selectMode("direct")}
-      >
-        <div style="display:flex; align-items:center;">
-          <span
-            class="mode-card__title"
-            style="display: flex; align-items: center; gap: 0.5rem;"
-          >
-            <Zap size={24} strokeWidth={3} color="var(--color-primary)" />
-            Direto
-          </span>
-        </div>
-        <span class="mode-card__desc"
-          >Vídeos de até 15 segundos, transformados direto em GIF</span
-        >
+  {#if !showTrimmer || !file}
+    <!-- ===== LANDING: Dropzone + Twitter ===== -->
+    <div class="landing-zone">
+      <Dropzone {onFileSelected} />
+
+      <div class="landing-zone__divider">
+        <span class="landing-zone__divider-line"></span>
+        <span class="landing-zone__divider-text">ou</span>
+        <span class="landing-zone__divider-line"></span>
       </div>
 
-      <div
-        class="mode-card"
-        class:active={mode === "trim"}
-        role="radio"
-        aria-checked={mode === "trim"}
-        tabindex="0"
-        onclick={() => selectMode("trim")}
-        onkeydown={(e: KeyboardEvent) =>
-          e.key === "Enter" && selectMode("trim")}
-      >
-        <div style="display:flex; align-items:center;">
-          <span
-            class="mode-card__title"
-            style="display: flex; align-items: center; gap: 0.5rem;"
-          >
-            <Scissors size={24} strokeWidth={2.5} />
-            Recorte
-          </span>
+      <div class="landing-zone__twitter">
+        <div class="landing-zone__twitter-label">
+          <Link size={18} strokeWidth={2.5} />
+          <span>Cole um link do <strong>X (Twitter)</strong></span>
         </div>
-        <span class="mode-card__desc"
-          >Para vídeos maiores — recorte até 15 segundos do trecho desejado</span
-        >
+        <div class="landing-zone__twitter-row">
+          <input
+            type="url"
+            bind:value={twitterUrl}
+            placeholder="https://x.com/..."
+            class="brutalist-input"
+            style="flex: 1;"
+            onkeydown={(e) => e.key === "Enter" && fetchTwitterVideo()}
+          />
+          <button
+            class="btn btn-primary btn--compact"
+            onclick={fetchTwitterVideo}
+            disabled={processing || !twitterUrl}
+          >
+            Buscar
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-
-  {#if !(showTrimmer && file)}
-    <Dropzone {onFileSelected} hidePreview={showTrimmer} />
-  {/if}
-
-  {#if showTrimmer && file && videoDuration > 0}
+  {:else}
+    <!-- ===== TRIM STATE: Trimmer + Generate ===== -->
     <div class="section">
-      <span class="section__label">Recortar trecho</span>
+      <div class="trim-header">
+        <button class="btn-back" onclick={goBackToLanding}>
+          <ArrowLeft size={18} strokeWidth={2.5} />
+          Voltar
+        </button>
+        <span class="section__label" style="margin: 0;">Recortar trecho</span>
+      </div>
       <VideoTrimmer
         {file}
         duration={videoDuration}
@@ -225,6 +245,17 @@
         fileSize={file.size}
         onSwapVideo={() => swapInput.click()}
       />
+    </div>
+
+    <div class="actions">
+      <button
+        class="btn btn-generate"
+        disabled={!canGenerate() || processing}
+        onclick={generate}
+      >
+        <Wand2 size={24} strokeWidth={2.5} />
+        Gerar GIF
+      </button>
     </div>
   {/if}
 
@@ -244,26 +275,4 @@
   {#if error}
     <p class="error-msg">{error}</p>
   {/if}
-
-  {#if mode === "direct" && file && videoDuration > 15}
-    <p
-      class="error-msg"
-      style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
-    >
-      <Clock size={16} />
-      O vídeo tem {videoDuration.toFixed(1)}s — no modo Direto o limite é 15
-      segundos.
-    </p>
-  {/if}
-
-  <div class="actions">
-    <button
-      class="btn btn-primary"
-      disabled={!canGenerate() || processing}
-      onclick={generate}
-    >
-      <Wand2 size={24} strokeWidth={2.5} />
-      Gerar GIF
-    </button>
-  </div>
 </div>

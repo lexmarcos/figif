@@ -1,29 +1,17 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
-  import { Clapperboard, RefreshCw } from "lucide-svelte";
+  import { Clapperboard } from "lucide-svelte";
 
   let {
     onFileSelected,
-    selectedFile = $bindable(null),
     maxSizeMB = 400,
-    hidePreview = false,
   }: {
     onFileSelected: (file: File) => void;
-    selectedFile?: File | null;
     maxSizeMB?: number;
-    hidePreview?: boolean;
   } = $props();
 
   let dragOver = $state(false);
   let error = $state("");
-  let videoUrl = $state("");
-  let videoDuration = $state(0);
   let fileInput: HTMLInputElement;
-
-  function formatSize(bytes: number): string {
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-  }
 
   function validate(file: File): boolean {
     error = "";
@@ -40,9 +28,6 @@
 
   function handleFile(file: File) {
     if (!validate(file)) return;
-    if (videoUrl) URL.revokeObjectURL(videoUrl);
-    videoUrl = URL.createObjectURL(file);
-    selectedFile = file;
     onFileSelected(file);
   }
 
@@ -56,96 +41,44 @@
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
     if (file) handleFile(file);
+    input.value = "";
   }
-
-  function onVideoLoaded(e: Event) {
-    const video = e.target as HTMLVideoElement;
-    videoDuration = video.duration;
-  }
-
-  function removeFile() {
-    if (videoUrl) URL.revokeObjectURL(videoUrl);
-    videoUrl = "";
-    selectedFile = null;
-    videoDuration = 0;
-    error = "";
-    if (fileInput) fileInput.value = "";
-  }
-
-  onDestroy(() => {
-    if (videoUrl) URL.revokeObjectURL(videoUrl);
-  });
 </script>
 
-<div class="section">
-  <span class="section__label">Vídeo</span>
-
-  {#if !selectedFile}
-    <div
-      class="dropzone"
-      class:drag-over={dragOver}
-      role="button"
-      tabindex="0"
-      ondragover={(e: DragEvent) => {
-        e.preventDefault();
-        dragOver = true;
-      }}
-      ondragleave={() => (dragOver = false)}
-      ondrop={(e: DragEvent) => {
-        e.preventDefault();
-        onDrop(e);
-      }}
-      onclick={() => fileInput.click()}
-      onkeydown={(e: KeyboardEvent) => e.key === "Enter" && fileInput.click()}
-    >
-      <div class="dropzone__icon">
-        <Clapperboard size={56} strokeWidth={2} />
-      </div>
-      <p class="dropzone__text">
-        Arraste seu vídeo ou <br /><strong>clique para selecionar</strong>
-      </p>
-      <p class="dropzone__hint">MP4 • Até {maxSizeMB}MB</p>
-    </div>
-  {:else if hidePreview}
-    <!-- Nothing visible — trimmer handles display -->
-  {:else}
-    <div class="video-preview">
-      <div class="video-preview__player">
-        <!-- svelte-ignore a11y_media_has_caption -->
-        <video
-          src={videoUrl}
-          controls
-          playsinline
-          onloadedmetadata={onVideoLoaded}
-        ></video>
-      </div>
-      <div class="video-preview__info">
-        <div class="video-preview__details">
-          <span class="meta"
-            >{formatSize(selectedFile.size)}
-            {#if videoDuration > 0}• {videoDuration.toFixed(1)}s{/if}</span
-          >
-        </div>
-      </div>
-      <button
-        class="video-preview__remove-btn"
-        onclick={() => fileInput.click()}
-      >
-        <RefreshCw size={22} strokeWidth={2.5} />
-        Trocar Vídeo
-      </button>
-    </div>
-  {/if}
-
-  {#if error}
-    <p class="error-msg">{error}</p>
-  {/if}
-
-  <input
-    bind:this={fileInput}
-    type="file"
-    accept="video/mp4,video/*"
-    style="display:none"
-    onchange={onInputChange}
-  />
+<div
+  class="dropzone"
+  class:drag-over={dragOver}
+  role="button"
+  tabindex="0"
+  ondragover={(e: DragEvent) => {
+    e.preventDefault();
+    dragOver = true;
+  }}
+  ondragleave={() => (dragOver = false)}
+  ondrop={(e: DragEvent) => {
+    e.preventDefault();
+    onDrop(e);
+  }}
+  onclick={() => fileInput.click()}
+  onkeydown={(e: KeyboardEvent) => e.key === "Enter" && fileInput.click()}
+>
+  <div class="dropzone__icon">
+    <Clapperboard size={56} strokeWidth={2} />
+  </div>
+  <p class="dropzone__text">
+    Arraste seu vídeo ou <br /><strong>clique para selecionar</strong>
+  </p>
+  <p class="dropzone__hint">MP4 • Até {maxSizeMB}MB</p>
 </div>
+
+{#if error}
+  <p class="error-msg">{error}</p>
+{/if}
+
+<input
+  bind:this={fileInput}
+  type="file"
+  accept="video/mp4,video/*"
+  style="display:none"
+  onchange={onInputChange}
+/>

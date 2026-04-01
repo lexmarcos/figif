@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from "svelte";
   import CropTool from "./CropTool.svelte";
   import ProgressOverlay from "./ProgressOverlay.svelte";
   import { cropGif, reencodeGif } from "./ffmpeg";
@@ -6,9 +7,13 @@
     Copy,
     Scissors,
     Download,
-    ArrowLeft,
     SlidersHorizontal,
+    RotateCcw,
+    Check,
+    X,
   } from "lucide-svelte";
+
+  type AspectRatio = "free" | "1:1" | "4:3" | "3:4" | "16:9" | "9:16";
 
   let {
     gifBlob = $bindable(),
@@ -19,6 +24,7 @@
   } = $props();
 
   let cropping = $state(false);
+  let aspectRatio = $state<AspectRatio>("free");
   let processing = $state(false);
   let progressMsg = $state("");
   let toast = $state("");
@@ -29,7 +35,19 @@
   let showQuality = $state(false);
   let originalBlob: Blob | null = $state(null);
 
-  let gifUrl = $derived(URL.createObjectURL(gifBlob));
+  // Crop tool ref for triggering confirm from outside
+  let cropConfirmFn: (() => void) | null = $state(null);
+
+  let gifUrl = $state("");
+
+  $effect(() => {
+    const nextUrl = URL.createObjectURL(gifBlob);
+    gifUrl = nextUrl;
+
+    return () => {
+      URL.revokeObjectURL(nextUrl);
+    };
+  });
 
   function formatSize(bytes: number): string {
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + " KB";
@@ -81,6 +99,27 @@
     a.click();
   }
 
+  function startCropping() {
+    cropping = true;
+    showQuality = false;
+    aspectRatio = "free";
+  }
+
+  function cancelCropping() {
+    cropping = false;
+    cropConfirmFn = null;
+    aspectRatio = "free";
+  }
+
+  function registerCropConfirm(confirm: (() => void) | null) {
+    cropConfirmFn = confirm;
+  }
+
+  function applyCropSelection() {
+    if (processing || !cropConfirmFn) return;
+    cropConfirmFn();
+  }
+
   async function onCropComplete(x: number, y: number, w: number, h: number) {
     processing = true;
     progressMsg = "Recortando...";
@@ -90,9 +129,10 @@
         progressMsg = msg;
       });
       gifBlob = newBlob;
-      originalBlob = null; // Reset original since crop changes the source
+      originalBlob = null;
       quality = 100;
       cropping = false;
+      cropConfirmFn = null;
       showToast("✅ GIF recortado!");
     } catch (e) {
       console.error(e);
@@ -105,7 +145,6 @@
   async function applyQuality() {
     if (processing) return;
 
-    // Save original on first quality change
     if (!originalBlob) {
       originalBlob = gifBlob;
     }
@@ -135,6 +174,10 @@
     if (q <= 80) return "Alta";
     return "Máxima";
   }
+
+  onDestroy(() => {
+    if (toastTimeout) clearTimeout(toastTimeout);
+  });
 </script>
 
 {#if processing}
@@ -142,88 +185,116 @@
 {/if}
 
 <div class="container">
-  <div class="back-row">
-    <button class="btn-back" onclick={onBack}>
-      <ArrowLeft size={16} />
-      Novo GIF
-    </button>
-  </div>
-
-  <header class="header">
-    <h1>Seu GIF</h1>
-    <h2>Pronto para usar como figurinha!</h2>
-  </header>
-
-  <div class="gif-result">
-    {#if cropping}
-      <CropTool
-        imageUrl={gifUrl}
-        {onCropComplete}
-        onCancel={() => (cropping = false)}
-      />
-    {:else}
-      <div class="gif-result__preview">
+  <div class="result-card">
+    <div
+      class="result-card__preview"
+      class:result-card__preview--cropping={cropping}
+    >
+      {#if cropping}
+        <CropTool
+          imageUrl={gifUrl}
+          {aspectRatio}
+          {onCropComplete}
+          onConfirmReady={registerCropConfirm}
+        />
+      {:else}
         <img src={gifUrl} alt="GIF gerado" />
+      {/if}
+    </div>
+
+    <div class="result-card__info">
+      <span class="result-card__size">{formatSize(gifBlob.size)}</span>
+      <span class="result-card__badge">GIF</span>
+    </div>
+
+    {#if cropping}
+      <div class="result-card__crop-controls">
+        <label class="crop-ratio-row" for="crop-aspect-ratio">
+          <span class="crop-ratio-label">Proporção:</span>
+          <select
+            id="crop-aspect-ratio"
+            class="crop-ratio-select"
+            bind:value={aspectRatio}
+          >
+            <option value="free">Livre</option>
+            <option value="1:1">1:1</option>
+            <option value="4:3">4:3</option>
+            <option value="3:4">3:4</option>
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+          </select>
+        </label>
       </div>
 
-      <p class="gif-result__size">{formatSize(gifBlob.size)}</p>
-
-      <div class="gif-result__actions">
-        <button class="btn btn-primary" onclick={copyGif}>
-          <Copy size={24} strokeWidth={2.5} />
-          Copiar GIF
+      <div class="result-card__actions result-card__actions--crop">
+        <button class="result-action" onclick={cancelCropping}>
+          <X size={20} strokeWidth={2.5} />
+          <span>Cancelar</span>
         </button>
-        <button class="btn btn-secondary" onclick={() => (cropping = true)}>
-          <Scissors size={24} strokeWidth={2.5} />
-          Recortar
-        </button>
-        <button class="btn btn-secondary" onclick={downloadGif}>
-          <Download size={24} strokeWidth={2.5} />
-          Baixar
-        </button>
-      </div>
-
-      <!-- Quality Control -->
-      <div class="quality-section">
         <button
-          class="quality-toggle"
-          class:quality-toggle--active={showQuality}
+          class="result-action result-action--primary"
+          onclick={applyCropSelection}
+          disabled={!cropConfirmFn || processing}
+        >
+          <Check size={20} strokeWidth={2.5} />
+          <span>Aplicar corte</span>
+        </button>
+      </div>
+    {:else}
+      <div class="result-card__actions">
+        <button class="result-action result-action--primary" onclick={copyGif}>
+          <Copy size={20} strokeWidth={2.5} />
+          <span>Copiar</span>
+        </button>
+        <button class="result-action" onclick={downloadGif}>
+          <Download size={20} strokeWidth={2.5} />
+          <span>Baixar</span>
+        </button>
+        <button class="result-action" onclick={startCropping}>
+          <Scissors size={20} strokeWidth={2.5} />
+          <span>Recortar</span>
+        </button>
+        <button
+          class="result-action"
+          class:result-action--active={showQuality}
           onclick={() => (showQuality = !showQuality)}
         >
           <SlidersHorizontal size={20} strokeWidth={2.5} />
-          Qualidade
+          <span>Qualidade</span>
         </button>
+      </div>
 
-        {#if showQuality}
-          <div class="quality-panel">
-            <div class="quality-slider-row">
-              <span class="quality-label">1</span>
-              <input
-                type="range"
-                min="1"
-                max="100"
-                step="1"
-                bind:value={quality}
-                class="quality-range"
-              />
-              <span class="quality-label">100</span>
-            </div>
-            <div class="quality-info">
-              <span class="quality-value">{quality}%</span>
-              <span class="quality-desc">{getQualityLabel(quality)}</span>
-            </div>
+      {#if showQuality}
+        <div class="result-card__quality">
+          <div class="quality-slider-row">
+            <input
+              type="range"
+              min="1"
+              max="100"
+              step="1"
+              bind:value={quality}
+              class="quality-range"
+            />
+            <span class="quality-chip">{quality}%</span>
+          </div>
+          <div class="quality-apply-row">
+            <span class="quality-desc">{getQualityLabel(quality)}</span>
             <button
-              class="btn btn-primary"
+              class="btn btn-primary btn--compact"
               onclick={applyQuality}
               disabled={processing}
-              style="padding: 0.85rem 2rem; font-size: 1rem;"
             >
               Aplicar
             </button>
           </div>
-        {/if}
-      </div>
+        </div>
+      {/if}
     {/if}
+
+    <button class="result-card__new" onclick={onBack}>
+      <RotateCcw size={18} strokeWidth={2.5} />
+      Criar outro GIF
+    </button>
   </div>
 </div>
 
