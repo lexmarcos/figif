@@ -1,103 +1,108 @@
 <p align="center">
-  <img src="./src/assets/hero.png" alt="FiGif" width="180" />
+  <svg width="180" height="180" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="40" cy="45" r="22" fill="#ffffff" />
+    <rect x="20" y="30" width="40" height="40" stroke="#0091ff" stroke-width="5" transform="rotate(15 40 50)" />
+    <rect x="40" y="35" width="45" height="45" fill="#CCFF00" style="filter: drop-shadow(0 0 15px rgba(204, 255, 0, 0.4));" transform="rotate(-10 62.5 57.5)" />
+    <polygon points="62,35 50,55 58,55 52,75 72,50 60,50" fill="#000000" />
+  </svg>
 </p>
 
 <h1 align="center">FiGif</h1>
 
 <p align="center">
-  GIF maker focado em navegador para criar figurinhas animadas com trim, crop e renderização local.
+  A browser-focused GIF maker for creating animated stickers with trim, crop, and local rendering.
 </p>
 
-## Sobre o projeto
+## About the project
 
-O **FiGif** é uma aplicação web para transformar vídeos em GIFs prontos para uso no WhatsApp e em outras redes. A proposta é manter o processamento principal no cliente com **FFmpeg WebAssembly**, reduzindo dependência de infraestrutura externa e preservando a privacidade do usuário.
+**FiGif** is a web application for turning videos into GIFs ready to use on WhatsApp and other platforms. The main idea is to keep the core processing on the client with **FFmpeg WebAssembly**, reducing reliance on external infrastructure and preserving user privacy.
 
-Além do upload local, o app também consegue buscar vídeos do **X/Twitter** por meio de um proxy em **Node.js + Express**, contornando limitações de CORS no navegador.
+In addition to local uploads, the app can also fetch videos from **X/Twitter** through a **Node.js + Express** proxy, working around browser CORS limitations.
 
-## O que o sistema faz
+## What the app does
 
-- Upload de vídeo local no navegador
-- Importação de vídeo do X/Twitter
-- Recorte de trecho do vídeo antes da geração do GIF
-- Recorte visual inline do GIF já gerado
-- Ajuste de qualidade do GIF final
-- Processamento local com feedback de progresso
-- Interface brutalista escura com foco em rapidez e legibilidade
+- Local video upload in the browser
+- Video import from X/Twitter
+- Trim a section of the video before GIF generation
+- Inline visual crop of the generated GIF
+- Final GIF quality adjustment
+- Local processing with progress feedback
+- Dark brutalist interface focused on speed and readability
 
 ## Stack
 
 - **Frontend:** Svelte 5 + Vite + TypeScript
-- **Estilo:** CSS puro
-- **Ícones:** lucide-svelte
-- **Processamento de mídia:** `@ffmpeg/ffmpeg` + `@ffmpeg/util`
-- **Backend auxiliar:** Node.js + Express + CORS
-- **Containerização:** Docker + Docker Compose + Nginx
+- **Styling:** Plain CSS
+- **Icons:** lucide-svelte
+- **Media processing:** `@ffmpeg/ffmpeg` + `@ffmpeg/util`
+- **Supporting backend:** Node.js + Express + CORS
+- **Containerization:** Docker + Docker Compose + Nginx
 
-## Como rodar localmente
+## How to run locally
 
-### Pré-requisitos
+### Prerequisites
 
-- Node.js 22+ recomendado
+- Node.js 22+ recommended
 - npm
 
-### 1. Instale as dependências
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Suba o backend
+### 2. Start the backend
 
-Em um terminal:
+In one terminal:
 
 ```bash
 npm run server
 ```
 
-O proxy ficará disponível em `http://localhost:3001`.
+The proxy will be available at `http://localhost:3001`.
 
-### 3. Suba o frontend
+### 3. Start the frontend
 
-Em outro terminal:
+In another terminal:
 
 ```bash
 npm run dev
 ```
 
-O frontend ficará disponível normalmente em `http://localhost:5173`.
+The frontend will usually be available at `http://localhost:5173`.
 
-## Como rodar com Docker Compose
+## How to run with Docker Compose
 
-### 1. Configure o ambiente
+### 1. Configure the environment
 
-O projeto já inclui um arquivo `.env` com a porta pública do frontend:
+The project already includes a `.env` file with the frontend public port:
 
 ```env
 FIGIF_PORT=8080
 ```
 
-Se quiser, ajuste esse valor antes de subir os containers.
+If needed, adjust this value before starting the containers.
 
-### 2. Suba os serviços
+### 2. Start the services
 
 ```bash
 docker compose up --build
 ```
 
-Depois disso, a aplicação ficará disponível em:
+After that, the application will be available at:
 
 ```bash
 http://localhost:8080
 ```
 
-## Estrutura dos serviços no Compose
+## Compose service structure
 
-- `frontend`: build de produção do app Svelte servido por Nginx
-- `backend`: proxy Express para integração com vídeo do X/Twitter
+- `frontend`: production build of the Svelte app served by Nginx
+- `backend`: Express proxy for X/Twitter video integration
 
-O Nginx encaminha as rotas `/api/*` para o backend automaticamente.
+Nginx forwards `/api/*` routes to the backend automatically.
 
-## Scripts úteis
+## Useful scripts
 
 ```bash
 npm run dev
@@ -107,16 +112,16 @@ npm run preview
 npm run check
 ```
 
-## Fluxo de uso
+## Usage flow
 
-1. Envie um vídeo local ou cole um link do X/Twitter
-2. Escolha o trecho que será transformado em GIF
-3. Gere o GIF no navegador
-4. Recorte a área desejada diretamente na tela do resultado
-5. Ajuste a qualidade, copie ou baixe o arquivo final
+1. Upload a local video or paste an X/Twitter link
+2. Choose the segment that will be turned into a GIF
+3. Generate the GIF in the browser
+4. Crop the desired area directly on the result screen
+5. Adjust the quality, then copy or download the final file
 
-## Observações
+## Notes
 
-- O processamento de GIF pode levar alguns segundos dependendo do vídeo e do dispositivo.
-- Para a importação de vídeos do X/Twitter funcionar, o backend precisa estar ativo.
-- O app usa headers específicos no frontend para compatibilidade com o FFmpeg em WebAssembly.
+- GIF processing may take a few seconds depending on the video and device.
+- For X/Twitter video import to work, the backend must be running.
+- The app uses specific frontend headers for compatibility with FFmpeg WebAssembly.
