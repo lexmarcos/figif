@@ -1,8 +1,14 @@
 <script lang="ts">
   import CropTool from "./CropTool.svelte";
   import ProgressOverlay from "./ProgressOverlay.svelte";
-  import { cropGif } from "./ffmpeg";
-  import { Copy, Scissors, Download, ArrowLeft } from "lucide-svelte";
+  import { cropGif, reencodeGif } from "./ffmpeg";
+  import {
+    Copy,
+    Scissors,
+    Download,
+    ArrowLeft,
+    SlidersHorizontal,
+  } from "lucide-svelte";
 
   let {
     gifBlob = $bindable(),
@@ -17,6 +23,11 @@
   let progressMsg = $state("");
   let toast = $state("");
   let toastTimeout: ReturnType<typeof setTimeout>;
+
+  // Quality control
+  let quality = $state(100);
+  let showQuality = $state(false);
+  let originalBlob: Blob | null = $state(null);
 
   let gifUrl = $derived(URL.createObjectURL(gifBlob));
 
@@ -79,6 +90,8 @@
         progressMsg = msg;
       });
       gifBlob = newBlob;
+      originalBlob = null; // Reset original since crop changes the source
+      quality = 100;
       cropping = false;
       showToast("✅ GIF recortado!");
     } catch (e) {
@@ -87,6 +100,40 @@
     } finally {
       processing = false;
     }
+  }
+
+  async function applyQuality() {
+    if (processing) return;
+
+    // Save original on first quality change
+    if (!originalBlob) {
+      originalBlob = gifBlob;
+    }
+
+    processing = true;
+    progressMsg = `Ajustando qualidade (${quality}%)...`;
+
+    try {
+      const sourceBlob = originalBlob || gifBlob;
+      const newBlob = await reencodeGif(sourceBlob, quality, (msg) => {
+        progressMsg = msg;
+      });
+      gifBlob = newBlob;
+      showToast(`✅ Qualidade ajustada para ${quality}%`);
+    } catch (e) {
+      console.error(e);
+      showToast("❌ Erro ao ajustar qualidade");
+    } finally {
+      processing = false;
+    }
+  }
+
+  function getQualityLabel(q: number): string {
+    if (q <= 20) return "Muito Baixa";
+    if (q <= 40) return "Baixa";
+    if (q <= 60) return "Média";
+    if (q <= 80) return "Alta";
+    return "Máxima";
   }
 </script>
 
@@ -123,17 +170,58 @@
 
       <div class="gif-result__actions">
         <button class="btn btn-primary" onclick={copyGif}>
-          <Copy size={18} />
+          <Copy size={24} strokeWidth={2.5} />
           Copiar GIF
         </button>
         <button class="btn btn-secondary" onclick={() => (cropping = true)}>
-          <Scissors size={18} />
+          <Scissors size={24} strokeWidth={2.5} />
           Recortar
         </button>
         <button class="btn btn-secondary" onclick={downloadGif}>
-          <Download size={18} />
+          <Download size={24} strokeWidth={2.5} />
           Baixar
         </button>
+      </div>
+
+      <!-- Quality Control -->
+      <div class="quality-section">
+        <button
+          class="quality-toggle"
+          class:quality-toggle--active={showQuality}
+          onclick={() => (showQuality = !showQuality)}
+        >
+          <SlidersHorizontal size={20} strokeWidth={2.5} />
+          Qualidade
+        </button>
+
+        {#if showQuality}
+          <div class="quality-panel">
+            <div class="quality-slider-row">
+              <span class="quality-label">1</span>
+              <input
+                type="range"
+                min="1"
+                max="100"
+                step="1"
+                bind:value={quality}
+                class="quality-range"
+              />
+              <span class="quality-label">100</span>
+            </div>
+            <div class="quality-info">
+              <span class="quality-value">{quality}%</span>
+              <span class="quality-desc">{getQualityLabel(quality)}</span>
+            </div>
+            <button
+              class="btn btn-primary"
+              onclick={applyQuality}
+              disabled={processing}
+              style="padding: 0.85rem 2rem; font-size: 1rem;"
+            >
+              Aplicar
+            </button>
+          </div>
+        {/if}
       </div>
     {/if}
   </div>

@@ -1,15 +1,17 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { Clapperboard } from "lucide-svelte";
+  import { Clapperboard, RefreshCw } from "lucide-svelte";
 
   let {
     onFileSelected,
     selectedFile = $bindable(null),
     maxSizeMB = 400,
+    hidePreview = false,
   }: {
     onFileSelected: (file: File) => void;
     selectedFile?: File | null;
     maxSizeMB?: number;
+    hidePreview?: boolean;
   } = $props();
 
   let dragOver = $state(false);
@@ -97,30 +99,40 @@
       onkeydown={(e: KeyboardEvent) => e.key === "Enter" && fileInput.click()}
     >
       <div class="dropzone__icon">
-        <Clapperboard size={48} strokeWidth={1.5} color="var(--text-muted)" />
+        <Clapperboard size={56} strokeWidth={2} />
       </div>
       <p class="dropzone__text">
-        Arraste seu vídeo aqui ou <strong>clique para selecionar</strong>
+        Arraste seu vídeo ou <br /><strong>clique para selecionar</strong>
       </p>
       <p class="dropzone__hint">MP4 • Até {maxSizeMB}MB</p>
     </div>
+  {:else if hidePreview}
+    <!-- Nothing visible — trimmer handles display -->
   {:else}
     <div class="video-preview">
-      <!-- svelte-ignore a11y_media_has_caption -->
-      <video
-        src={videoUrl}
-        controls
-        playsinline
-        onloadedmetadata={onVideoLoaded}
-      ></video>
-      <div class="video-preview__info">
-        <span>{selectedFile.name} • {formatSize(selectedFile.size)}</span>
-        {#if videoDuration > 0}
-          <span>{videoDuration.toFixed(1)}s</span>
-        {/if}
+      <div class="video-preview__player">
+        <!-- svelte-ignore a11y_media_has_caption -->
+        <video
+          src={videoUrl}
+          controls
+          playsinline
+          onloadedmetadata={onVideoLoaded}
+        ></video>
       </div>
-      <button class="video-preview__remove" onclick={removeFile}>
-        ✕ Remover
+      <div class="video-preview__info">
+        <div class="video-preview__details">
+          <span class="meta"
+            >{formatSize(selectedFile.size)}
+            {#if videoDuration > 0}• {videoDuration.toFixed(1)}s{/if}</span
+          >
+        </div>
+      </div>
+      <button
+        class="video-preview__remove-btn"
+        onclick={() => fileInput.click()}
+      >
+        <RefreshCw size={22} strokeWidth={2.5} />
+        Trocar Vídeo
       </button>
     </div>
   {/if}
