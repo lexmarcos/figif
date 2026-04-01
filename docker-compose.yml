@@ -15,5 +15,5 @@ services:
     depends_on:
       - backend
     ports:
-      - "${FIGIF_PORT:-8080}:80"
+      - "127.0.0.1:${FIGIF_PORT:-8080}:80"
     restart: unless-stopped
