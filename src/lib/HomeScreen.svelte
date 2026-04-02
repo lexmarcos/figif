@@ -84,12 +84,15 @@
     const video = document.createElement("video");
     video.preload = "metadata";
     video.onloadedmetadata = () => {
-      videoDuration = video.duration;
+      videoDuration = Number.isFinite(video.duration) ? video.duration : 0;
       URL.revokeObjectURL(url);
 
       // Auto-set trim range
       trimStart = 0;
-      trimEnd = Math.min(videoDuration, MAX_VIDEO_DURATION_SECONDS);
+      trimEnd = Math.min(
+        videoDuration || MAX_VIDEO_DURATION_SECONDS,
+        MAX_VIDEO_DURATION_SECONDS,
+      );
       showTrimmer = true;
     };
     video.src = url;
@@ -132,7 +135,8 @@
       if (!mediaResp.ok) throw new Error("Erro de conexão ao rotear mídia");
       const blob = await mediaResp.blob();
       const filename = "twitter_video.mp4";
-      const f = new File([blob], filename, { type: blob.type });
+      const fileType = blob.type.startsWith("video/") ? blob.type : "video/mp4";
+      const f = new File([blob], filename, { type: fileType });
 
       onFileSelected(f);
       twitterUrl = "";
