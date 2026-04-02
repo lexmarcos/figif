@@ -70,10 +70,8 @@
     max-width: 420px;
     padding: 3.5rem 2rem;
     background: var(--bg-card, #141414);
-    border: 3px solid var(--color-primary, #ccff00);
-    box-shadow:
-      10px 10px 0px rgba(204, 255, 0, 0.3),
-      0 0 50px rgba(204, 255, 0, 0.15);
+    border: 3px solid var(--color-secondary, #ffffff);
+    box-shadow: 6px 6px 0px rgba(255, 255, 255, 0.2);
     overflow: hidden;
   }
 
@@ -82,11 +80,10 @@
     height: 64px;
     background-color: transparent;
     border: 4px solid var(--border-card, rgba(255, 255, 255, 0.15));
-    border-top: 4px solid var(--color-primary, #ccff00);
-    border-right: 4px solid var(--color-tertiary, #0091ff);
+    border-top: 4px solid var(--color-secondary, #ffffff);
+    border-right: 4px solid var(--color-secondary, #ffffff);
     border-radius: 0%; /* Sharp corners for brutalist feel */
     animation: spinBrutal 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-    box-shadow: 0 0 20px rgba(204, 255, 0, 0.4);
   }
 
   @keyframes spinBrutal {
@@ -114,13 +111,12 @@
 
   .loader-message {
     font-family: "Bricolage Grotesque", sans-serif;
-    color: var(--color-primary, #ccff00);
+    color: var(--color-secondary, #ffffff);
     font-size: 1.75rem;
     font-weight: 800;
     text-transform: uppercase;
     margin: 0;
     letter-spacing: 0.05em;
-    text-shadow: 0 0 15px rgba(204, 255, 0, 0.4);
     animation: pulseText 1.5s ease-in-out infinite alternate;
   }
 
@@ -135,12 +131,10 @@
 
   @keyframes pulseText {
     0% {
-      opacity: 0.85;
-      text-shadow: 0 0 10px rgba(204, 255, 0, 0.3);
+      opacity: 0.7;
     }
     100% {
       opacity: 1;
-      text-shadow: 0 0 25px rgba(204, 255, 0, 0.7);
     }
   }
 
@@ -153,7 +147,7 @@
     .brutal-loader-box {
       padding: 2.5rem 1.5rem;
       gap: 1.5rem;
-      box-shadow: 6px 6px 0px rgba(204, 255, 0, 0.3);
+      box-shadow: 4px 4px 0px rgba(255, 255, 255, 0.2);
       border-width: 2px;
     }
 

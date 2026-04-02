@@ -5,7 +5,7 @@
   let {
     file,
     duration,
-    maxDuration = 15,
+    maxDuration = 10,
     onTrimConfirmed,
     fileSize = 0,
     onSwapVideo,

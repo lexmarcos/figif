@@ -9,6 +9,7 @@
     /\/$/,
     "",
   );
+  const MAX_VIDEO_DURATION_SECONDS = 10;
 
   function apiUrl(path: string): string {
     return `${API_BASE_URL}${path}`;
@@ -29,7 +30,7 @@
 
   // Trim state
   let trimStart = $state(0);
-  let trimEnd = $state(15);
+  let trimEnd = $state(MAX_VIDEO_DURATION_SECONDS);
   let showTrimmer = $state(false);
   let showTutorial = $state(false);
   let swapInput: HTMLInputElement;
@@ -56,7 +57,7 @@
 
       // Auto-set trim range
       trimStart = 0;
-      trimEnd = Math.min(videoDuration, 15);
+      trimEnd = Math.min(videoDuration, MAX_VIDEO_DURATION_SECONDS);
       showTrimmer = true;
     };
     video.src = url;
@@ -120,7 +121,7 @@
     showTrimmer = false;
     videoDuration = 0;
     trimStart = 0;
-    trimEnd = 15;
+    trimEnd = MAX_VIDEO_DURATION_SECONDS;
     error = "";
   }
 
@@ -266,7 +267,7 @@
       <VideoTrimmer
         {file}
         duration={videoDuration}
-        maxDuration={15}
+        maxDuration={MAX_VIDEO_DURATION_SECONDS}
         {onTrimConfirmed}
         fileSize={file.size}
         onSwapVideo={() => swapInput.click()}

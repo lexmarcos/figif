@@ -260,6 +260,7 @@
       {#if showQuality}
         <div class="result-card__quality">
           <div class="quality-slider-row">
+            <span class="quality-desc">{getQualityLabel(quality)}</span>
             <input
               type="range"
               min="1"
@@ -270,16 +271,20 @@
             />
             <span class="quality-chip">{quality}%</span>
           </div>
-          <div class="quality-apply-row">
-            <span class="quality-desc">{getQualityLabel(quality)}</span>
-            <button
-              class="btn btn-primary btn--compact"
-              onclick={applyQuality}
-              disabled={processing}
-            >
-              Aplicar
-            </button>
-          </div>
+        </div>
+        <div class="result-card__actions result-card__actions--crop">
+          <button class="result-action" onclick={() => (showQuality = false)}>
+            <X size={20} strokeWidth={2.5} />
+            <span>Cancelar</span>
+          </button>
+          <button
+            class="result-action result-action--primary"
+            onclick={applyQuality}
+            disabled={processing}
+          >
+            <Check size={20} strokeWidth={2.5} />
+            <span>Aplicar Qualidade</span>
+          </button>
         </div>
       {/if}
     {/if}
