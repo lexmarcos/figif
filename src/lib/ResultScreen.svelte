@@ -27,7 +27,10 @@
   let aspectRatio = $state<AspectRatio>("free");
   let processing = $state(false);
   let progressMsg = $state("");
-  let toast = $state<{ message: string; tone: "success" | "error" | "download" } | null>(null);
+  let toast = $state<{
+    message: string;
+    tone: "success" | "error" | "download";
+  } | null>(null);
   let toastTimeout: ReturnType<typeof setTimeout>;
 
   // Quality control
@@ -65,33 +68,44 @@
     }, 3000);
   }
 
+  function supportsClipboardMimeType(type: string): boolean {
+    if (typeof ClipboardItem === "undefined") return false;
+    if (typeof ClipboardItem.supports === "function") {
+      return ClipboardItem.supports(type);
+    }
+
+    return true;
+  }
+
   async function copyGif() {
+    const gifType = gifBlob.type || "image/gif";
+    const clipboardBlob =
+      gifBlob.type === gifType
+        ? gifBlob
+        : gifBlob.slice(0, gifBlob.size, gifType);
+
     try {
-      if (navigator.clipboard && typeof ClipboardItem !== "undefined") {
-        const img = new Image();
-        img.src = gifUrl;
-        await new Promise((resolve) => (img.onload = resolve));
-
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0);
-
-        const pngBlob = await new Promise<Blob>((resolve) =>
-          canvas.toBlob((b) => resolve(b!), "image/png"),
-        );
-
-        await navigator.clipboard.write([
-          new ClipboardItem({ "image/png": pngBlob }),
-        ]);
-        showToast("Imagem copiada!", "success");
-      } else {
+      if (!navigator.clipboard || typeof ClipboardItem === "undefined") {
         throw new Error("Clipboard API not available");
       }
+
+      if (!supportsClipboardMimeType(gifType)) {
+        throw new Error(`Clipboard API does not support ${gifType}`);
+      }
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [gifType]: Promise.resolve(clipboardBlob),
+        }),
+      ]);
+      showToast("GIF copiado!", "success");
     } catch (err) {
+      console.error(err);
       downloadGif();
-      showToast("GIF baixado. Cole no WhatsApp.", "download");
+      showToast(
+        "Seu navegador baixou o GIF para manter a animação.",
+        "download",
+      );
     }
   }
 
@@ -312,17 +326,21 @@
 </div>
 
 {#if toast}
-  <div class="toast" class:toast--error={toast.tone === "error"}>
-    <span class="toast__icon" aria-hidden="true">
+  <div
+    class="toast"
+    class:toast--error={toast.tone === "error"}
+    class:toast--download={toast.tone === "download"}
+  >
+    <div class="toast__icon" aria-hidden="true">
       {#if toast.tone === "success"}
-        <Check size={18} strokeWidth={2.8} />
+        <Check size={22} strokeWidth={3} />
       {:else if toast.tone === "download"}
-        <Download size={18} strokeWidth={2.8} />
+        <Download size={22} strokeWidth={3} />
       {:else}
-        <X size={18} strokeWidth={2.8} />
+        <X size={22} strokeWidth={3} />
       {/if}
-    </span>
-    <span>{toast.message}</span>
+    </div>
+    <div class="toast__message">{toast.message}</div>
   </div>
 {/if}
 
