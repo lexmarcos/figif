@@ -1,4 +1,4 @@
-const SHARED_X_STATUS_PATH_PATTERN = /^\/i\/status\/(\d+)\/?$/;
+const SHARED_X_STATUS_PATH_PATTERN = /^\/(?:i|[^/]+)\/status\/(\d+)\/?$/;
 const X_STATUS_ID_PATTERN = /\/status\/(\d+)/;
 
 export function buildXStatusUrl(statusId: string): string {
