@@ -4,7 +4,7 @@
   import ProgressOverlay from "./ProgressOverlay.svelte";
   import { cropGif, reencodeGif } from "./ffmpeg";
   import {
-    Copy,
+    MessageCircle,
     Scissors,
     Download,
     SlidersHorizontal,
@@ -29,7 +29,7 @@
   let progressMsg = $state("");
   let toast = $state<{
     message: string;
-    tone: "success" | "error" | "download";
+    tone: "success" | "error";
   } | null>(null);
   let toastTimeout: ReturnType<typeof setTimeout>;
 
@@ -57,56 +57,12 @@
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   }
 
-  function showToast(
-    message: string,
-    tone: "success" | "error" | "download" = "success",
-  ) {
+  function showToast(message: string, tone: "success" | "error" = "success") {
     toast = { message, tone };
     if (toastTimeout) clearTimeout(toastTimeout);
     toastTimeout = setTimeout(() => {
       toast = null;
     }, 3000);
-  }
-
-  function supportsClipboardMimeType(type: string): boolean {
-    if (typeof ClipboardItem === "undefined") return false;
-    if (typeof ClipboardItem.supports === "function") {
-      return ClipboardItem.supports(type);
-    }
-
-    return true;
-  }
-
-  async function copyGif() {
-    const gifType = gifBlob.type || "image/gif";
-    const clipboardBlob =
-      gifBlob.type === gifType
-        ? gifBlob
-        : gifBlob.slice(0, gifBlob.size, gifType);
-
-    try {
-      if (!navigator.clipboard || typeof ClipboardItem === "undefined") {
-        throw new Error("Clipboard API not available");
-      }
-
-      if (!supportsClipboardMimeType(gifType)) {
-        throw new Error(`Clipboard API does not support ${gifType}`);
-      }
-
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          [gifType]: Promise.resolve(clipboardBlob),
-        }),
-      ]);
-      showToast("GIF copiado!", "success");
-    } catch (err) {
-      console.error(err);
-      downloadGif();
-      showToast(
-        "Seu navegador baixou o GIF para manter a animação.",
-        "download",
-      );
-    }
   }
 
   function downloadGif() {
@@ -217,19 +173,28 @@
       {:else}
         <div class="result-image-container">
           <img src={gifUrl} alt="GIF gerado" />
-          <div class="copy-hint" aria-hidden="true">
-            <span class="copy-hint-icon">
-              <Copy size={40} strokeWidth={2.6} />
-            </span>
-            <span class="copy-hint-text"
-              >Pressione e segure para copiar<br />e cole no WhatsApp</span
-            >
-          </div>
         </div>
       {/if}
     </div>
 
-    <div class="result-card__info">
+    {#if !cropping}
+      <div class="result-card__hint" role="note">
+        <div class="result-card__hint_shell">
+          <span class="result-card__hint-icon" aria-hidden="true">
+            <MessageCircle size={18} strokeWidth={2.5} />
+          </span>
+          <span class="result-card__hint-text">
+            <span class="result-card__hint-label">Dica:</span>
+            Aperte e segure no gif para copiar e colar na conversa do WhatsApp
+          </span>
+        </div>
+      </div>
+    {/if}
+
+    <div
+      class="result-card__info"
+      class:result-card__info--with-hint={!cropping}
+    >
       <span class="result-card__size">{formatSize(gifBlob.size)}</span>
       <span class="result-card__badge">GIF</span>
     </div>
@@ -268,15 +233,16 @@
         </button>
       </div>
     {:else}
-      <div class="result-card__actions">
-        <button class="result-action result-action--primary" onclick={copyGif}>
-          <Copy size={20} strokeWidth={2.5} />
-          <span>Copiar</span>
-        </button>
-        <button class="result-action" onclick={downloadGif}>
+      <div class="result-card__actions result-card__actions--single">
+        <button
+          class="result-action result-action--primary"
+          onclick={downloadGif}
+        >
           <Download size={20} strokeWidth={2.5} />
           <span>Baixar</span>
         </button>
+      </div>
+      <div class="result-card__actions">
         <button class="result-action" onclick={startCropping}>
           <Scissors size={20} strokeWidth={2.5} />
           <span>Recortar</span>
@@ -326,16 +292,10 @@
 </div>
 
 {#if toast}
-  <div
-    class="toast"
-    class:toast--error={toast.tone === "error"}
-    class:toast--download={toast.tone === "download"}
-  >
+  <div class="toast" class:toast--error={toast.tone === "error"}>
     <div class="toast__icon" aria-hidden="true">
       {#if toast.tone === "success"}
         <Check size={22} strokeWidth={3} />
-      {:else if toast.tone === "download"}
-        <Download size={22} strokeWidth={3} />
       {:else}
         <X size={22} strokeWidth={3} />
       {/if}
@@ -352,71 +312,5 @@
     align-items: center;
     width: 100%;
     height: 100%;
-  }
-
-  .copy-hint {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.85);
-    border: 3px solid var(--color-primary);
-    box-shadow: 4px 4px 0px rgba(204, 255, 0, 0.4);
-    color: #fff;
-    padding: 1.25rem 1.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    pointer-events: none;
-    z-index: 10;
-    animation: hintFadeInOut 5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  .copy-hint-icon {
-    color: var(--color-primary);
-    filter: drop-shadow(0 0 18px rgba(204, 255, 0, 0.5));
-    animation: pressPulse 1.5s ease-in-out infinite;
-  }
-
-  .copy-hint-text {
-    font-family: "Bricolage Grotesque", sans-serif;
-    font-size: 0.9rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    text-align: center;
-    letter-spacing: 0.05em;
-    line-height: 1.3;
-  }
-
-  @keyframes pressPulse {
-    0%,
-    100% {
-      transform: translateY(0) scale(1);
-    }
-    50% {
-      transform: translateY(4px) scale(0.9);
-    }
-  }
-
-  @keyframes hintFadeInOut {
-    0% {
-      opacity: 0;
-      transform: translate(-50%, -45%);
-    }
-    10% {
-      opacity: 1;
-      transform: translate(-50%, -50%);
-    }
-    85% {
-      opacity: 1;
-      transform: translate(-50%, -50%);
-    }
-    100% {
-      opacity: 0;
-      transform: translate(-50%, -50%);
-      visibility: hidden;
-    }
   }
 </style>

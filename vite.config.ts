@@ -6,10 +6,6 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: ['stag-above-hog.ngrok-free.app'],
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-    },
     proxy: {
       '/api/twitter': {
         target: 'http://localhost:3001',
