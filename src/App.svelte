@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { Link } from "lucide-svelte";
   import HomeScreen from "./lib/HomeScreen.svelte";
   import ResultScreen from "./lib/ResultScreen.svelte";
   import CookieConsentBanner from "./lib/CookieConsentBanner.svelte";
@@ -17,10 +18,10 @@
   let gifBlob: Blob | null = $state(null);
   let cookieConsentStatus: CookieConsentStatus | null = $state(null);
   let cookieBannerOpen = $state(false);
-
-  const analyticsEnabled = isAnalyticsConfigured();
+  let analyticsEnabled = $state(false);
 
   onMount(() => {
+    analyticsEnabled = isAnalyticsConfigured();
     if (!analyticsEnabled) return;
 
     cookieConsentStatus = initializeAnalyticsConsent();
@@ -62,6 +63,22 @@
 {:else if currentScreen === "result" && gifBlob}
   <ResultScreen {gifBlob} onBack={goHome} />
 {/if}
+
+<footer class="app-footer">
+  <div class="app-footer__content">
+    <p class="app-footer__credit">Feito com carinho por markzuel | lexmarcos</p>
+    <a
+      class="app-footer__link"
+      href="https://github.com/lexmarcos/figif"
+      target="_blank"
+      rel="noreferrer"
+      aria-label="Abrir repositório do FiGif no GitHub"
+    >
+      <Link size={16} strokeWidth={2.5} />
+      GitHub
+    </a>
+  </div>
+</footer>
 
 {#if analyticsEnabled}
   <CookieConsentBanner

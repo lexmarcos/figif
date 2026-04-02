@@ -3,7 +3,7 @@
   import ProgressOverlay from "./ProgressOverlay.svelte";
   import VideoTrimmer from "./VideoTrimmer.svelte";
   import { trimAndConvertToGif } from "./ffmpeg";
-  import { Wand2, Sparkles, Link, ArrowLeft } from "lucide-svelte";
+  import { Wand2, Link, ArrowLeft, Play, X } from "lucide-svelte";
 
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(
     /\/$/,
@@ -31,7 +31,17 @@
   let trimStart = $state(0);
   let trimEnd = $state(15);
   let showTrimmer = $state(false);
+  let showTutorial = $state(false);
   let swapInput: HTMLInputElement;
+  let tutorialVideo = $state<HTMLVideoElement | undefined>(undefined);
+
+  $effect(() => {
+    if (!showTutorial || !tutorialVideo) return;
+
+    tutorialVideo.playbackRate = 1.25;
+    tutorialVideo.currentTime = 0;
+    tutorialVideo.play().catch(() => {});
+  });
 
   function onFileSelected(f: File) {
     file = f;
@@ -114,6 +124,18 @@
     error = "";
   }
 
+  function openTutorial() {
+    showTutorial = true;
+  }
+
+  function closeTutorial() {
+    showTutorial = false;
+    if (!tutorialVideo) return;
+
+    tutorialVideo.pause();
+    tutorialVideo.currentTime = 0;
+  }
+
   async function generate() {
     if (!file || processing) return;
 
@@ -149,9 +171,6 @@
 
 <div class="container">
   <header class="header home-hero">
-    <div class="home-hero__spark">
-      <Sparkles size={48} strokeWidth={1.5} />
-    </div>
     <div class="brand-logo home-hero__brand">
       <svg
         width="100"
@@ -195,6 +214,13 @@
 
   {#if !showTrimmer || !file}
     <!-- ===== LANDING: Dropzone + Twitter ===== -->
+    <div class="home-tutorial">
+      <button class="btn btn-secondary home-tutorial__button" onclick={openTutorial}>
+        <Play size={18} strokeWidth={2.7} />
+        Como usar
+      </button>
+    </div>
+
     <div class="landing-zone">
       <Dropzone {onFileSelected} />
 
@@ -276,3 +302,44 @@
     <p class="error-msg">{error}</p>
   {/if}
 </div>
+
+{#if showTutorial}
+  <div
+    class="tutorial-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Tutorial de uso do FiGif"
+  >
+    <button
+      class="tutorial-modal__backdrop"
+      type="button"
+      aria-label="Fechar tutorial"
+      onclick={closeTutorial}
+    ></button>
+    <div class="tutorial-modal__panel">
+      <div class="tutorial-modal__header">
+        <div class="tutorial-modal__eyebrow">Como usar</div>
+        <button
+          class="tutorial-modal__close"
+          type="button"
+          aria-label="Fechar tutorial"
+          onclick={closeTutorial}
+        >
+          <X size={20} strokeWidth={2.8} />
+        </button>
+      </div>
+
+      <div class="tutorial-modal__body">
+        <!-- svelte-ignore a11y_media_has_caption -->
+        <video
+          bind:this={tutorialVideo}
+          class="tutorial-modal__video"
+          src="/tutorial.webm"
+          controls
+          playsinline
+          preload="metadata"
+        ></video>
+      </div>
+    </div>
+  </div>
+{/if}
