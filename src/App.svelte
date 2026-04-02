@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Link } from "lucide-svelte";
+  import { Link, Heart } from "lucide-svelte";
   import HomeScreen from "./lib/HomeScreen.svelte";
   import ResultScreen from "./lib/ResultScreen.svelte";
   import CookieConsentBanner from "./lib/CookieConsentBanner.svelte";
@@ -66,7 +66,14 @@
 
 <footer class="app-footer">
   <div class="app-footer__content">
-    <p class="app-footer__credit">Feito com carinho por markzuel | lexmarcos</p>
+    <p class="app-footer__credit">
+      Feito com <Heart
+        size={14}
+        strokeWidth={3}
+        fill="currentColor"
+        class="footer-heart-icon"
+      /> por markzuel
+    </p>
     <a
       class="app-footer__link"
       href="https://github.com/lexmarcos/figif"

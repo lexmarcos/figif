@@ -95,7 +95,18 @@ body {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
+
+.footer-heart-icon {
+  color: #FFF;
+  /* Svelte-ish red or standard heart red */
+  filter: drop-shadow(0 0 5px rgba(255, 62, 0, 0.4));
+  margin-top: -2px
+}
+
 
 .app-footer__link {
   display: inline-flex;
@@ -745,7 +756,7 @@ h2 {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.result-card__hint_shell{
+.result-card__hint_shell {
   display: flex;
   align-items: center;
   gap: 0.85rem;
