@@ -7,21 +7,13 @@
     isOpen: boolean;
     onAccept: () => void;
     onReject: () => void;
-    onOpen: () => void;
     onClose: () => void;
   }
 
-  let { status, isOpen, onAccept, onReject, onOpen, onClose }: Props = $props();
+  let { status, isOpen, onAccept, onReject, onClose }: Props = $props();
 
   const needsDecision = $derived(status === null);
 </script>
-
-{#if !isOpen && !needsDecision}
-  <button class="cookie-trigger" type="button" onclick={onOpen}>
-    <Cookie size={16} strokeWidth={3} />
-    Cookies
-  </button>
-{/if}
 
 {#if isOpen}
   <div

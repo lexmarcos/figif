@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Link, Heart } from "lucide-svelte";
+  import { Cookie, Link, Heart } from "lucide-svelte";
   import HomeScreen from "./lib/HomeScreen.svelte";
   import ResultScreen from "./lib/ResultScreen.svelte";
   import CookieConsentBanner from "./lib/CookieConsentBanner.svelte";
@@ -11,6 +11,7 @@
     rejectCookieConsent,
     type CookieConsentStatus,
   } from "./lib/analytics-consent";
+  import { getSharedXStatusUrlFromPathname } from "./lib/x-status-link";
 
   type Screen = "home" | "result";
 
@@ -19,8 +20,13 @@
   let cookieConsentStatus: CookieConsentStatus | null = $state(null);
   let cookieBannerOpen = $state(false);
   let analyticsEnabled = $state(false);
+  let initialTwitterUrl: string | null = $state(null);
 
   onMount(() => {
+    initialTwitterUrl = getSharedXStatusUrlFromPathname(
+      window.location.pathname,
+    );
+
     analyticsEnabled = isAnalyticsConfigured();
     if (!analyticsEnabled) return;
 
@@ -36,6 +42,15 @@
   function goHome() {
     gifBlob = null;
     currentScreen = "home";
+  }
+
+  function clearInitialTwitterUrl() {
+    if (!initialTwitterUrl) return;
+
+    initialTwitterUrl = null;
+    if (window.location.pathname === "/") return;
+
+    window.history.replaceState(window.history.state, "", "/");
   }
 
   function acceptAnalyticsCookies() {
@@ -59,7 +74,11 @@
 </script>
 
 {#if currentScreen === "home"}
-  <HomeScreen {onGifGenerated} />
+  <HomeScreen
+    {onGifGenerated}
+    {initialTwitterUrl}
+    onInitialTwitterUrlConsumed={clearInitialTwitterUrl}
+  />
 {:else if currentScreen === "result" && gifBlob}
   <ResultScreen {gifBlob} onBack={goHome} />
 {/if}
@@ -74,16 +93,30 @@
         class="footer-heart-icon"
       /> por markzuel
     </p>
-    <a
-      class="app-footer__link"
-      href="https://github.com/lexmarcos/figif"
-      target="_blank"
-      rel="noreferrer"
-      aria-label="Abrir repositório do FiGif no GitHub"
-    >
-      <Link size={16} strokeWidth={2.5} />
-      GitHub
-    </a>
+    <div class="app-footer__actions">
+      {#if analyticsEnabled && cookieConsentStatus !== null}
+        <button
+          class="app-footer__button"
+          type="button"
+          onclick={openCookieBanner}
+          aria-label="Reabrir banner de cookies"
+        >
+          <Cookie size={16} strokeWidth={2.5} />
+          Cookies
+        </button>
+      {/if}
+
+      <a
+        class="app-footer__link"
+        href="https://github.com/lexmarcos/figif"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Abrir repositório do FiGif no GitHub"
+      >
+        <Link size={16} strokeWidth={2.5} />
+        GitHub
+      </a>
+    </div>
   </div>
 </footer>
 
@@ -93,7 +126,6 @@
     isOpen={cookieBannerOpen}
     onAccept={acceptAnalyticsCookies}
     onReject={rejectAnalyticsCookies}
-    onOpen={openCookieBanner}
     onClose={closeCookieBanner}
   />
 {/if}

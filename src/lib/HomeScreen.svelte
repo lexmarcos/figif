@@ -4,6 +4,7 @@
   import VideoTrimmer from "./VideoTrimmer.svelte";
   import { trimAndConvertToGif } from "./ffmpeg";
   import { Wand2, Link, ArrowLeft, Play, X } from "lucide-svelte";
+  import { normalizeXStatusUrl } from "./x-status-link";
 
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(
     /\/$/,
@@ -15,11 +16,17 @@
     return `${API_BASE_URL}${path}`;
   }
 
-  let {
-    onGifGenerated,
-  }: {
+  interface Props {
+    initialTwitterUrl?: string | null;
     onGifGenerated: (blob: Blob) => void;
-  } = $props();
+    onInitialTwitterUrlConsumed?: () => void;
+  }
+
+  let {
+    initialTwitterUrl = null,
+    onGifGenerated,
+    onInitialTwitterUrlConsumed,
+  }: Props = $props();
 
   let file: File | null = $state(null);
   let twitterUrl = $state("");
@@ -33,6 +40,7 @@
   let trimEnd = $state(MAX_VIDEO_DURATION_SECONDS);
   let showTrimmer = $state(false);
   let showTutorial = $state(false);
+  let lastAutoFetchedTwitterUrl: string | null = $state(null);
   let swapInput: HTMLInputElement;
   let tutorialVideo = $state<HTMLVideoElement | undefined>(undefined);
 
@@ -42,6 +50,30 @@
     tutorialVideo.playbackRate = 1.25;
     tutorialVideo.currentTime = 0;
     tutorialVideo.play().catch(() => {});
+  });
+
+  $effect(() => {
+    const normalizedInitialTwitterUrl = initialTwitterUrl
+      ? normalizeXStatusUrl(initialTwitterUrl)
+      : "";
+
+    if (
+      !normalizedInitialTwitterUrl ||
+      normalizedInitialTwitterUrl === lastAutoFetchedTwitterUrl ||
+      file ||
+      processing
+    ) {
+      return;
+    }
+
+    lastAutoFetchedTwitterUrl = normalizedInitialTwitterUrl;
+    twitterUrl = normalizedInitialTwitterUrl;
+
+    void fetchTwitterVideo(normalizedInitialTwitterUrl).then((didLoadVideo) => {
+      if (didLoadVideo) {
+        onInitialTwitterUrlConsumed?.();
+      }
+    });
   });
 
   function onFileSelected(f: File) {
@@ -67,8 +99,10 @@
     return !!file && showTrimmer;
   }
 
-  async function fetchTwitterVideo() {
-    if (!twitterUrl) return;
+  async function fetchTwitterVideo(sourceUrl = twitterUrl): Promise<boolean> {
+    const normalizedTwitterUrl = normalizeXStatusUrl(sourceUrl);
+    if (!normalizedTwitterUrl) return false;
+
     processing = true;
     error = "";
     progressMsg = "Buscando vídeo no Twitter...";
@@ -81,7 +115,7 @@
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          url: twitterUrl,
+          url: normalizedTwitterUrl,
           vCodec: "h264",
         }),
       });
@@ -102,10 +136,12 @@
 
       onFileSelected(f);
       twitterUrl = "";
+      return true;
     } catch (err: any) {
       console.error(err);
       error =
         "Não foi possível baixar o vídeo. Verifique se o link possui um vídeo válido.";
+      return false;
     } finally {
       processing = false;
     }
@@ -242,11 +278,17 @@
             bind:value={twitterUrl}
             placeholder="https://x.com/..."
             class="brutalist-input landing-zone__input"
-            onkeydown={(e) => e.key === "Enter" && fetchTwitterVideo()}
+            onkeydown={(e) => {
+              if (e.key !== "Enter") return;
+
+              void fetchTwitterVideo();
+            }}
           />
           <button
             class="btn btn-primary btn--compact landing-zone__submit"
-            onclick={fetchTwitterVideo}
+            onclick={() => {
+              void fetchTwitterVideo();
+            }}
             disabled={processing || !twitterUrl}
           >
             Buscar
